@@ -61,7 +61,7 @@ func main() {
 	filePattern := flag.String("in", "/var/log/speed.log*", "输入的数据文件，支持通配符，例如 /var/log/speed.log*")
 	outfile := flag.String("out", "/var/www/html/speedtest.jpeg", "输出JPEG文件，也可以是PNG文件，例如 /var/www/html/speedtest.jpeg")
 	title := flag.String("title", "Speedtest Overview", "图片标题")
-	label := flag.String("label", "chisel-", "数据图线标注")
+	label := flag.String("label", "data-", "数据图线标注")
 	xLabel := flag.String("xlabel", "Time", "横坐标标签")
 	yLabel := flag.String("ylabel", "Speed (Bps)", "纵坐标标签")
 	maxlines := flag.Int("lines", 120, "读取行数，从文件末尾开始算，如果0的话读取整个文件")

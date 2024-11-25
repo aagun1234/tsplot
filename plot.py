@@ -13,11 +13,11 @@ parser = argparse.ArgumentParser(description="处理命令行参数")
 parser.add_argument('-data', default='/var/log/speed.log*', help='数据文件路径')
 parser.add_argument('-line', type=int, default=120, help='行数')
 parser.add_argument('-out', default='/var/www/html/speedtest.jpeg', help='输出文件路径')
-parser.add_argument('-label', default='chisel', help='曲线标注')
+parser.add_argument('-label', default='data-', help='曲线标注')
 parser.add_argument('-title', default='Speedtest Overview', help='图形标题')
 parser.add_argument('-xlabel', default='Time', help='x轴标注')
 parser.add_argument('-ylabel', default='Speed (Bps)', help='Y轴标注')
-parser.add_argument('-xx', type=int, default=1000, help='数据倍率')
+parser.add_argument('-x', type=int, default=1000, help='数据倍率')
 
 # 解析命令行参数
 args = parser.parse_args()
