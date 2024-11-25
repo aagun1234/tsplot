@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(description="处理命令行参数")
 parser.add_argument('-data', default='/var/log/speed.log*', help='数据文件路径')
 parser.add_argument('-line', type=int, default=120, help='行数')
 parser.add_argument('-out', default='/var/www/html/speedtest.jpeg', help='输出文件路径')
-parser.add_argument('-label', default='data-', help='曲线标注')
+parser.add_argument('-label', default='data- ', help='曲线标注')
 parser.add_argument('-title', default='Speedtest Overview', help='图形标题')
 parser.add_argument('-xlabel', default='Time', help='x轴标注')
 parser.add_argument('-ylabel', default='Speed (Bps)', help='Y轴标注')
@@ -31,11 +31,16 @@ savefile= args.out
 log_files = sorted(glob.glob(log_files_pattern),key=os.path.getmtime, reverse=True)
 # 存储读取的行
 last_lines = deque(maxlen=maxline)
-
+if len(log_files)==0 :
+    print("无输入文件",log_files_pattern)
+    sys.exit()
 maxcol=0
 # 读取日志文件，确保读取到最新的120行数据
 for log_file in log_files:
-    print("读取",log_file)
+    if os.path.exists(log_file):
+        print("读取",log_file)
+    else:
+        continue
     with open(log_file, 'r') as file:
         lines = file.readlines()
         last_lines1=deque(maxlen=maxline)
@@ -53,7 +58,10 @@ for log_file in log_files:
             break  # 如果已经获取了120行，停止读取
 
 num_lines = len(last_lines)
+
 print("行数",num_lines,"  列数",maxcol)
+if num_lines<=0:
+    sys.exit()
 print("从",last_lines[0].split(',')[0],"到",last_lines[len(last_lines)-1].split(',')[0])
 # 初始化数据列表
 times = []

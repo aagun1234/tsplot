@@ -56,7 +56,6 @@ func customUsage() {
 }
 
 func main() {
-	
 	flag.Usage = customUsage
 	filePattern := flag.String("in", "/var/log/speed.log*", "输入的数据文件，支持通配符，例如 /var/log/speed.log*")
 	outfile := flag.String("out", "/var/www/html/speedtest.jpeg", "输出JPEG文件，也可以是PNG文件，例如 /var/www/html/speedtest.jpeg")
@@ -69,7 +68,6 @@ func main() {
 	height := flag.Int("height", 16, "图片高度，厘米")
 	xx := flag.Float64("x", 1, "纵坐标除以数据倍率")
 
-	// Step 2: 解析命令行参数
 	flag.Parse()
 
 	// 获取匹配的文件列表
@@ -101,20 +99,16 @@ func main() {
 		allData = append(fileData,allData...)
 		linesRead += len(fileData)
 	}
-	//fmt.Println("Read lines:", len(allData))
 
-	// Step 5: 找到最大列数
 	maxColumns := findMaxColumns(allData)
 	fmt.Println("读取行数：", len(allData),"  读取最大列数：", maxColumns)
 
-	// Step 6: 补全数据
 	for i := range allData {
 		for len(allData[i]) < maxColumns {
 			allData[i] = append(allData[i], "0")
 		}
 	}
 
-	// Step 7: 创建并绘制图形
 	err = plotData(allData, *xx, *title, *xLabel, *yLabel,*label,*width,*height,*outfile)
 	if err != nil {
 		fmt.Println("绘图出错:", err)
