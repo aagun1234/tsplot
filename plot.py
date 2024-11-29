@@ -82,7 +82,7 @@ for i in range(0,maxcol):
             times.append(datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S'))
         else:
             try:
-                f1=float(row[i])/args.xx
+                f1=float(row[i])/args.x
             except ValueError:
                 f1=0.0
             data1.append(f1)
