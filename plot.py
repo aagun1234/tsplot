@@ -5,8 +5,33 @@ import glob
 import sys
 import argparse
 from collections import deque
+import re
 from datetime import datetime
 
+
+# 定义常见日期时间格式的正则表达式
+patterns = [
+    (r'^\d{4}-\d{1,2}-\d{1,2}$', '%Y-%m-%d'),  # 例如: 2024-12-25
+    (r'^\d{1,2}/\d{1,2}/\d{4}$', '%m/%d/%Y'),  # 例如: 12/25/2024
+    (r'^\d{1,2}-\d{1,2}-\d{4}$', '%d-%m-%Y'),  # 例如: 25-12-2024
+    (r'^\d{4}/\d{1,2}/\d{1,2}$', '%Y/%m/%d'),  # 例如: 2024/12/25
+    (r'^\d{1,2}:\d{1,2}:\d{1,2}$', '%H:%M:%S'),  # 例如: 14:30:00
+    (r'^\d{1,2}:\d{1,2}$', '%H:%M'),  # 例如: 14:30
+    (r'^\d{4}-\d{1,2}-\d{2} \d{1,2}:\d{1,2}:\d{1,2}$', '%Y-%m-%d %H:%M:%S'),  # 例如: 2024-12-25 14:30:00
+    (r'^\d{4}/\d{1,2}/\d{2} \d{1,2}:\d{1,2}:\d{1,2}$', '%Y/%m/%d %H:%M:%S'),  # 例如: 2024-12-25 14:30:00
+    (r'^\d{1,2}/\d{1,2}/\d{4} \d{1,2}:\d{1,2}:\d{1,2}$', '%m/%d/%Y %H:%M:%S'),  # 例如: 2024-12-25 14:30:00
+    (r'^\d{1,2}-\d{1,2}-\d{4} \d{1,2}:\d{1,2}:\d{1,2}$', '%d-%m-%Y %H:%M:%S'),  # 例如: 2024-12-25 14:30:00
+    (r'^\d{4}-\d{1,2}-\d{2} \d{1,2}:\d{1,2}$', '%Y-%m-%d %H:%M'),  # 例如: 2024-12-25 14:30
+    (r'^\d{4}/\d{1,2}/\d{2} \d{1,2}:\d{1,2}$', '%Y/%m/%d %H:%M'),  # 例如: 2024-12-25 14:30
+    (r'^\d{1,2}/\d{1,2}/\d{4} \d{1,2}:\d{1,2}$', '%m/%d/%Y %H:%M'),  # 例如: 2024-12-25 14:30
+    (r'^\d{1,2}-\d{1,2}-\d{4} \d{1,2}:\d{1,2}$', '%d-%m-%Y %H:%M'),  # 例如: 2024-12-25 14:30
+]
+
+def guess_datetime_format(date_string):
+    for pattern, fmt in patterns:
+        if re.match(pattern, date_string):
+            return fmt
+    return ""  # 未匹配任何格式
 
 parser = argparse.ArgumentParser(description="处理命令行参数")
 
@@ -72,14 +97,24 @@ for i in range(0,maxcol):
         row = line.split(',')
         while len(row)<maxcol:
             row.append("0")
-        try:
-            datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S')  # 调整时间格式根据你的文件
-        except ValueError:
+        try:           
+            format_guess = guess_datetime_format(row[0])
+            if format_guess=="":
+                print(f"Cannot guess datatime string: {row[0]}")
+                continue
+            datetime.strptime(row[0], format_guess)
+
+        except :
         # 如果转换失败，打印错误信息并跳过该行
             print(f"Skipping line due to error: {line}")
             continue  # 忽略有问题的行，继续处理下一行
         if i==0:
-            times.append(datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S'))
+            format_guess = guess_datetime_format(row[0])
+            if format_guess!="":
+                times.append(datetime.strptime(row[0], format_guess))
+            else:
+                print(f"Cannot guess datatime string: {row[0]}")
+
         else:
             try:
                 f1=float(row[i])/args.x
