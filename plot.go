@@ -67,7 +67,8 @@ func main() {
 	width := flag.Int("width", 42, "图片宽度，厘米")
 	height := flag.Int("height", 16, "图片高度，厘米")
 	xx := flag.Float64("x", 1, "纵坐标除以数据倍率")
-
+	avrg := flag.Bool("avrg", false, "绘制平均趋势虚线")
+	
 	flag.Parse()
 
 	// 获取匹配的文件列表
@@ -109,7 +110,7 @@ func main() {
 		}
 	}
 
-	err = plotData(allData, *xx, *title, *xLabel, *yLabel,*label,*width,*height,*outfile)
+	err = plotData(allData, *xx, *title, *xLabel, *yLabel,*label,*width,*height,*outfile,*avrg)
 	if err != nil {
 		fmt.Println("绘图出错:", err)
 		return
@@ -159,7 +160,7 @@ func findMaxColumns(data [][]string) int {
 	return maxColumns
 }
 
-func plotData(data [][]string,xx float64, title, xLabel, yLabel string, label string, width,height int, jpgfile string) error {
+func plotData(data [][]string,xx float64, title, xLabel, yLabel string, label string, width,height int, jpgfile string, avrg bool ) error {
 
     lineColors := []color.Color{
         color.RGBA{R: 255, G: 0, B: 0, A: 255},     // 红色
@@ -174,8 +175,8 @@ func plotData(data [][]string,xx float64, title, xLabel, yLabel string, label st
         color.RGBA{R: 0, G: 128, B: 128, A: 255},   // 暗青
         color.RGBA{R: 0, G: 0, B: 128, A: 255},     // 暗蓝
         color.RGBA{R: 255, G: 165, B: 0, A: 255},   // 橙色
-        color.RGBA{R: 192, G: 192, B: 192, A: 255}, // 银色
-        color.RGBA{R: 255, G: 255, B: 0, A: 255},   // 黄色
+        color.RGBA{R: 100, G: 100, B: 100, A: 255}, // 暗银色
+        color.RGBA{R: 128, G: 128, B: 0, A: 255},   // 暗黄色
 	}
 
 	// 转换数据为图表需要的格式
@@ -227,17 +228,28 @@ func plotData(data [][]string,xx float64, title, xLabel, yLabel string, label st
 	// 解析数据并添加到图表
 	for i := 0; i < len(columnsData); i++ {
 		pts := make(plotter.XYs, len(columnsData[i]))
+		apts := make(plotter.XYs, len(columnsData[i]))
+		sum:=0.0
 		for j, value := range columnsData[i] {
 			pts[j].X = timeStamps[j]
 			pts[j].Y = value
+			sum=sum+value
+			apts[j].X = timeStamps[j]
+			apts[j].Y = sum/float64(j)
 		}
 	
 		l, err := plotter.NewLine(pts)
+		al, _ :=plotter.NewLine(apts)
 		if err != nil {
 			fmt.Sprintln("绘图出错: %v", err)
 		}
-		l.LineStyle.Width = vg.Points(2)
+		l.LineStyle.Width = vg.Points(1)
 		l.LineStyle.Color = lineColors[i%len(lineColors)]
+		al.LineStyle.Color = lineColors[i%len(lineColors)]
+		al.LineStyle.Dashes = []vg.Length{vg.Points(5), vg.Points(5)}
+		if avrg {
+			p.Add(al)
+		}
 		p.Add(l)
 		p.Legend.Add(fmt.Sprintf("%s %d",label, i+1), l)
 		
