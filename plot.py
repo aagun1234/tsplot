@@ -5,45 +5,20 @@ import glob
 import sys
 import argparse
 from collections import deque
-import re
 from datetime import datetime
 
-
-# 定义常见日期时间格式的正则表达式
-patterns = [
-    (r'^\d{4}-\d{1,2}-\d{1,2}$', '%Y-%m-%d'),  # 例如: 2024-12-25
-    (r'^\d{1,2}/\d{1,2}/\d{4}$', '%m/%d/%Y'),  # 例如: 12/25/2024
-    (r'^\d{1,2}-\d{1,2}-\d{4}$', '%d-%m-%Y'),  # 例如: 25-12-2024
-    (r'^\d{4}/\d{1,2}/\d{1,2}$', '%Y/%m/%d'),  # 例如: 2024/12/25
-    (r'^\d{1,2}:\d{1,2}:\d{1,2}$', '%H:%M:%S'),  # 例如: 14:30:00
-    (r'^\d{1,2}:\d{1,2}$', '%H:%M'),  # 例如: 14:30
-    (r'^\d{4}-\d{1,2}-\d{2} \d{1,2}:\d{1,2}:\d{1,2}$', '%Y-%m-%d %H:%M:%S'),  # 例如: 2024-12-25 14:30:00
-    (r'^\d{4}/\d{1,2}/\d{2} \d{1,2}:\d{1,2}:\d{1,2}$', '%Y/%m/%d %H:%M:%S'),  # 例如: 2024-12-25 14:30:00
-    (r'^\d{1,2}/\d{1,2}/\d{4} \d{1,2}:\d{1,2}:\d{1,2}$', '%m/%d/%Y %H:%M:%S'),  # 例如: 2024-12-25 14:30:00
-    (r'^\d{1,2}-\d{1,2}-\d{4} \d{1,2}:\d{1,2}:\d{1,2}$', '%d-%m-%Y %H:%M:%S'),  # 例如: 2024-12-25 14:30:00
-    (r'^\d{4}-\d{1,2}-\d{2} \d{1,2}:\d{1,2}$', '%Y-%m-%d %H:%M'),  # 例如: 2024-12-25 14:30
-    (r'^\d{4}/\d{1,2}/\d{2} \d{1,2}:\d{1,2}$', '%Y/%m/%d %H:%M'),  # 例如: 2024-12-25 14:30
-    (r'^\d{1,2}/\d{1,2}/\d{4} \d{1,2}:\d{1,2}$', '%m/%d/%Y %H:%M'),  # 例如: 2024-12-25 14:30
-    (r'^\d{1,2}-\d{1,2}-\d{4} \d{1,2}:\d{1,2}$', '%d-%m-%Y %H:%M'),  # 例如: 2024-12-25 14:30
-]
-
-def guess_datetime_format(date_string):
-    for pattern, fmt in patterns:
-        if re.match(pattern, date_string):
-            return fmt
-    return ""  # 未匹配任何格式
 
 parser = argparse.ArgumentParser(description="处理命令行参数")
 
 parser.add_argument('-data', default='/var/log/speed.log*', help='数据文件路径')
 parser.add_argument('-line', type=int, default=120, help='行数')
 parser.add_argument('-out', default='/var/www/html/speedtest.jpeg', help='输出文件路径')
-parser.add_argument('-label', default='data- ', help='曲线标注')
+parser.add_argument('-label', default='data-', help='曲线标注')
 parser.add_argument('-title', default='Speedtest Overview', help='图形标题')
 parser.add_argument('-xlabel', default='Time', help='x轴标注')
 parser.add_argument('-ylabel', default='Speed (KBps)', help='Y轴标注')
 parser.add_argument('-x', type=int, default=1000, help='数据倍率')
-
+parser.add_argument('-avrg', action='store_true', help='是否绘制均值趋势')
 # 解析命令行参数
 args = parser.parse_args()
 
@@ -51,7 +26,7 @@ args = parser.parse_args()
 log_files_pattern = args.data 
 maxline = args.line
 savefile= args.out
-
+avrg= args.avrg
 # 使用glob库获取符合模式的所有日志文件
 log_files = sorted(glob.glob(log_files_pattern),key=os.path.getmtime, reverse=True)
 # 存储读取的行
@@ -91,45 +66,52 @@ print("从",last_lines[0].split(',')[0],"到",last_lines[len(last_lines)-1].spli
 # 初始化数据列表
 times = []
 coldata=[]
+avgdata=[]
 for i in range(0,maxcol):
     data1=[]
+    sum1=[]
+    sum0=0.0
+    n=0
     for line in last_lines:
         row = line.split(',')
         while len(row)<maxcol:
             row.append("0")
-        try:           
-            format_guess = guess_datetime_format(row[0])
-            if format_guess=="":
-                print(f"Cannot guess datatime string: {row[0]}")
-                continue
-            datetime.strptime(row[0], format_guess)
-
-        except :
+        try:
+            datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S')  # 调整时间格式根据你的文件
+        except ValueError:
         # 如果转换失败，打印错误信息并跳过该行
             print(f"Skipping line due to error: {line}")
             continue  # 忽略有问题的行，继续处理下一行
         if i==0:
-            format_guess = guess_datetime_format(row[0])
-            if format_guess!="":
-                times.append(datetime.strptime(row[0], format_guess))
-            else:
-                print(f"Cannot guess datatime string: {row[0]}")
-
+            times.append(datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S'))
         else:
             try:
                 f1=float(row[i])/args.x
             except ValueError:
                 f1=0.0
+            sum0=sum0+f1
+            n=n+1
+            sum1.append(sum0/n)
             data1.append(f1)
     if i>0:
+        if avrg:
+            avgdata.append(sum1)
         coldata.append(data1)
 
 
-
+colors = [
+    'red', 'green', 'blue', 'cyan', 'magenta',
+    'black', 'orange', 'purple', 'brown', 
+    'pink', 'lime', 'teal', 'indigo', 'violet', 'maroon',
+    'navy', 'olive', 'gold', 'silver', 'chocolate',
+    'coral', 'khaki', 'turquoise', 'salmon', 'orchid'
+]
 # 创建折线图
 plt.figure(figsize=(20, 6))  # 图表大小
 for i in range(0,maxcol-1):
-    plt.plot(times, coldata[i], label=args.label+str(i))
+    plt.plot(times, coldata[i], color=colors[i%len(colors)], linestyle='-', label=args.label+str(i+1))
+    if avrg:
+        plt.plot(times, avgdata[i], color=colors[i%len(colors)], linestyle='--')
 
 # 添加图表标题和图例
 plt.title(args.title)
